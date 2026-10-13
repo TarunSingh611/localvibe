@@ -125,8 +125,6 @@ export default function ThreadClient({ conversationId }: { conversationId: strin
 
   if (!conversation) return <Spinner className="py-24" />;
 
-  let lastDay = '';
-
   return (
     <div className="max-w-2xl mx-auto flex flex-col h-[calc(100dvh-8.5rem)] lg:h-[100dvh] lg:px-4 lg:py-4">
       <div className="flex items-center gap-3 px-4 py-3 bg-white border-b lg:border lg:rounded-t-2xl border-gray-200">
@@ -171,10 +169,9 @@ export default function ThreadClient({ conversationId }: { conversationId: strin
       )}
 
       <div className="flex-1 overflow-y-auto bg-gray-50 lg:border-x border-gray-200 px-4 py-4 space-y-1.5">
-        {messages.map((m) => {
+        {messages.map((m, index) => {
           const day = formatDay(m.createdAt);
-          const showDay = day !== lastDay;
-          lastDay = day;
+          const showDay = index === 0 || day !== formatDay(messages[index - 1].createdAt);
           return (
             <div key={m.id}>
               {showDay && <p className="text-center text-xs text-gray-400 my-3">{day}</p>}

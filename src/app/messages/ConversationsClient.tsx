@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { MessageCircle, ShoppingBag } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
@@ -15,21 +15,18 @@ export default function ConversationsClient() {
   const [items, setItems] = useState<ConversationDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      const data = await api<{ items: ConversationDTO[] }>('/api/conversations');
-      setItems(data.items);
-      setError(null);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }, []);
-
   useEffect(() => {
+    const load = () =>
+      api<{ items: ConversationDTO[] }>('/api/conversations')
+        .then((data) => {
+          setItems(data.items);
+          setError(null);
+        })
+        .catch((e) => setError((e as Error).message));
     load();
     const interval = setInterval(() => document.visibilityState === 'visible' && load(), POLL_MS);
     return () => clearInterval(interval);
-  }, [load]);
+  }, []);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-5 lg:py-8">

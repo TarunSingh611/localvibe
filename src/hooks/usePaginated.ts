@@ -10,25 +10,30 @@ type Params = Record<string, string | number | boolean | null | undefined>;
 export function usePaginated<T extends { id: string }>(endpoint: string | null, params: Params) {
   const [items, setItems] = useState<T[]>([]);
   const [cursor, setCursor] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<{ key: string; message: string } | null>(null);
+  const [moreError, setMoreError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const key = endpoint ? `${endpoint}${buildQuery(params)}` : null;
   const requestId = useRef(0);
 
   useEffect(() => {
     if (!key) return;
     const id = ++requestId.current;
-    setLoading(true);
-    setError(null);
     api<Paginated<T>>(key)
       .then((data) => {
         if (id !== requestId.current) return;
         setItems(data.items);
         setCursor(data.nextCursor);
+        setLoadError(null);
+        setMoreError(null);
+        setLoadedKey(key);
       })
-      .catch((err) => id === requestId.current && setError((err as Error).message))
-      .finally(() => id === requestId.current && setLoading(false));
+      .catch((err) => {
+        if (id !== requestId.current) return;
+        setLoadError({ key, message: (err as Error).message });
+        setLoadedKey(key);
+      });
   }, [key]);
 
   const loadMore = useCallback(async () => {
@@ -44,7 +49,7 @@ export function usePaginated<T extends { id: string }>(endpoint: string | null, 
       });
       setCursor(data.nextCursor);
     } catch (err) {
-      setError((err as Error).message);
+      setMoreError((err as Error).message);
     } finally {
       setLoadingMore(false);
     }
@@ -54,6 +59,9 @@ export function usePaginated<T extends { id: string }>(endpoint: string | null, 
   const prepend = useCallback((item: T) => setItems((prev) => [item, ...prev.filter((p) => p.id !== item.id)]), []);
   const update = useCallback((id: string, patch: Partial<T>) => setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item))), []);
   const remove = useCallback((id: string) => setItems((prev) => prev.filter((item) => item.id !== id)), []);
+
+  const loading = key === null || loadedKey !== key;
+  const error = loadError?.key === key ? loadError.message : moreError;
 
   return { items, loading, loadingMore, error, hasMore: Boolean(cursor), loadMore, prepend, update, remove };
 }

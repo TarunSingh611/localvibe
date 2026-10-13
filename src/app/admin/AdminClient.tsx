@@ -57,13 +57,13 @@ export default function AdminClient() {
   const [tab, setTab] = useState<'reports' | 'contacts'>('reports');
   const [busy, setBusy] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    try {
-      setData(await api<AdminData>('/api/admin'));
-    } catch (e) {
-      toast.error((e as Error).message);
-    }
-  }, []);
+  const load = useCallback(
+    () =>
+      api<AdminData>('/api/admin')
+        .then(setData)
+        .catch((e) => toast.error((e as Error).message)),
+    []
+  );
 
   useEffect(() => {
     load();

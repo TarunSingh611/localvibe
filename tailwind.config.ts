@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import animate from "tailwindcss-animate";
 
 const config: Config = {
   content: [
@@ -103,12 +104,12 @@ const config: Config = {
           to: { height: "0" },
         },
         "fade-in": {
-          "0%": { opacity: 0, transform: "translateY(10px)" } as any,
-          "100%": { opacity: 1, transform: "translateY(0)" } as any,
+          "0%": { opacity: "0", transform: "translateY(10px)" },
+          "100%": { opacity: "1", transform: "translateY(0)" },
         },
         "slide-in": {
-          "0%": { transform: "translateX(-100%)" } as any,
-          "100%": { transform: "translateX(0)" } as any,
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(0)" },
         },
       },
       animation: {
@@ -119,7 +120,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [animate],
 };
 
 export default config;

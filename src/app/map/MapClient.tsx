@@ -35,29 +35,28 @@ const QUERY_RADIUS_KM = 15;
 export default function MapClient() {
   const { location, hydrated } = useLocationStore();
   const openPicker = useUIStore((s) => s.openLocationPicker);
-  const [center, setCenter] = useState<[number, number] | null>(null);
-  const [queryCenter, setQueryCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const [panned, setPanned] = useState<{ lat: number; lng: number; base: string } | null>(null);
   const [posts, setPosts] = useState<PostDTO[]>([]);
   const [listings, setListings] = useState<ListingDTO[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [fetchedQuery, setFetchedQuery] = useState<string | null>(null);
   const [hidden, setHidden] = useState<Set<Layer>>(new Set());
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  useEffect(() => {
-    if (!hydrated) return;
-    if (location) {
-      setCenter([location.latitude, location.longitude]);
-      setQueryCenter({ lat: location.latitude, lng: location.longitude });
-    } else {
-      setCenter(DEFAULT_CENTER);
-    }
-  }, [hydrated, location]);
+  const locationKey = location ? `${location.latitude},${location.longitude}` : '';
+  const center = useMemo<[number, number] | null>(
+    () => (!hydrated ? null : location ? [location.latitude, location.longitude] : DEFAULT_CENTER),
+    [hydrated, location]
+  );
+  const queryCenter =
+    panned && panned.base === locationKey ? panned : location ? { lat: location.latitude, lng: location.longitude } : null;
+  const query = queryCenter
+    ? buildQuery({ lat: queryCenter.lat.toFixed(3), lng: queryCenter.lng.toFixed(3), radiusKm: QUERY_RADIUS_KM, limit: 50 })
+    : null;
+  const loading = query !== null && fetchedQuery !== query;
 
   useEffect(() => {
-    if (!queryCenter) return;
+    if (!query) return;
     const controller = new AbortController();
-    const query = buildQuery({ lat: queryCenter.lat, lng: queryCenter.lng, radiusKm: QUERY_RADIUS_KM, limit: 50 });
-    setLoading(true);
     Promise.all([
       api<Paginated<PostDTO>>(`/api/posts${query}`, { signal: controller.signal }),
       api<Paginated<ListingDTO>>(`/api/listings${query}`, { signal: controller.signal }),
@@ -67,20 +66,23 @@ export default function MapClient() {
         setListings(l.items);
       })
       .catch(() => {})
-      .finally(() => !controller.signal.aborted && setLoading(false));
+      .finally(() => !controller.signal.aborted && setFetchedQuery(query));
     return () => controller.abort();
-  }, [queryCenter]);
+  }, [query]);
 
-  const onMoveEnd = useCallback((c: { lat: number; lng: number }, zoom: number) => {
-    if (zoom < 10) return;
-    if (debounce.current) clearTimeout(debounce.current);
-    debounce.current = setTimeout(() => {
-      setQueryCenter((prev) => {
-        if (prev && Math.abs(prev.lat - c.lat) < 0.02 && Math.abs(prev.lng - c.lng) < 0.02) return prev;
-        return { lat: c.lat, lng: c.lng };
-      });
-    }, 500);
-  }, []);
+  const onMoveEnd = useCallback(
+    (c: { lat: number; lng: number }, zoom: number) => {
+      if (zoom < 10) return;
+      if (debounce.current) clearTimeout(debounce.current);
+      debounce.current = setTimeout(() => {
+        setPanned((prev) => {
+          if (prev && prev.base === locationKey && Math.abs(prev.lat - c.lat) < 0.02 && Math.abs(prev.lng - c.lng) < 0.02) return prev;
+          return { lat: c.lat, lng: c.lng, base: locationKey };
+        });
+      }, 500);
+    },
+    [locationKey]
+  );
 
   const markers = useMemo<MapMarker[]>(() => {
     const result: MapMarker[] = [];

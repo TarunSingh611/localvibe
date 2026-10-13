@@ -21,7 +21,7 @@ import { POST_TYPES, type PostDTO, type PostType } from '@/types';
 export default function FeedClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const requireAuth = useRequireAuth();
   const { location, radiusKm, hydrated } = useLocationStore();
   const openPicker = useUIStore((s) => s.openLocationPicker);
@@ -37,12 +37,17 @@ export default function FeedClient() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
+  const composeParam = searchParams.get('compose') === '1';
+  const showCompose = composeOpen || (composeParam && status === 'authenticated');
+
   useEffect(() => {
-    if (searchParams.get('compose') === '1' && requireAuth()) {
-      setComposeOpen(true);
-      router.replace('/feed', { scroll: false });
-    }
-  }, [searchParams, requireAuth, router]);
+    if (composeParam && status === 'unauthenticated') requireAuth();
+  }, [composeParam, status, requireAuth]);
+
+  const closeCompose = () => {
+    setComposeOpen(false);
+    if (composeParam) router.replace('/feed', { scroll: false });
+  };
 
   useEffect(() => {
     if (searchParams.get('welcome') === '1' && hydrated && !location) openPicker();
@@ -150,7 +155,7 @@ export default function FeedClient() {
         <LoadMore hasMore={feed.hasMore} loading={feed.loadingMore} onLoadMore={feed.loadMore} />
       </div>
 
-      <CreatePostModal open={composeOpen} onClose={() => setComposeOpen(false)} onCreated={feed.prepend} />
+      <CreatePostModal open={showCompose} onClose={closeCompose} onCreated={feed.prepend} />
     </div>
   );
 }

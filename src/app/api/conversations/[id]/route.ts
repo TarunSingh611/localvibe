@@ -70,7 +70,7 @@ export const POST = route<Context>(async (request, { params }) => {
   await conversations.updateOne(
     { _id: conversation._id },
     {
-      $set: { lastMessage: { text, senderId: user._id, createdAt: now }, updatedAt: now },
+      $set: { lastMessage: { text, senderId: user._id, createdAt: now }, updatedAt: now, [`unread.${user._id}`]: 0 },
       $inc: { [`unread.${otherId}`]: 1 },
     }
   );

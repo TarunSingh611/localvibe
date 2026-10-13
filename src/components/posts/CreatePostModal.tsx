@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { MapPin, Phone, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Modal } from '@/components/ui/Modal';
@@ -41,11 +41,8 @@ export function CreatePostModal({ open, onClose, onCreated, initialType = 'commu
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    if (open) setType(initialType);
-  }, [open, initialType]);
-
   const reset = () => {
+    setType(initialType);
     setText('');
     setImages([]);
     setTags([]);

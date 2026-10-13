@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin, ShieldCheck } from 'lucide-react';
@@ -29,17 +29,16 @@ export default function NewListingForm() {
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [isFree, setIsFree] = useState(false);
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [chosenCurrency, setCurrency] = useState<Currency | null>(null);
   const [category, setCategory] = useState<ListingCategory>('other');
   const [condition, setCondition] = useState<ListingCondition>('good');
   const [images, setImages] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    const guess = currencyForCountry(location?.place.countryCode);
-    if ((CURRENCIES as readonly string[]).includes(guess)) setCurrency(guess as Currency);
-  }, [location?.place.countryCode]);
+  const guessedCurrency = currencyForCountry(location?.place.countryCode);
+  const currency: Currency =
+    chosenCurrency ?? ((CURRENCIES as readonly string[]).includes(guessedCurrency) ? (guessedCurrency as Currency) : 'USD');
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
