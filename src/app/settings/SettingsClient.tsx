@@ -220,8 +220,8 @@ export default function SettingsClient({ initialMe, hasPassword }: { initialMe: 
           </div>
           <label className="flex items-center justify-between gap-3 cursor-pointer">
             <span>
-              <span className="block font-medium text-gray-900 text-sm">Email notifications</span>
-              <span className="block text-xs text-gray-500">Emergency alerts near you and important account emails</span>
+              <span className="block font-medium text-gray-900 text-sm">Emergency emails</span>
+              <span className="block text-xs text-gray-500">Email me about critical alerts within 10 km. Password reset emails are always sent.</span>
             </span>
             <input
               type="checkbox"

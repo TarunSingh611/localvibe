@@ -21,11 +21,11 @@ Everything runs on free tiers: Vercel Hobby, MongoDB Atlas M0, Cloudinary Free, 
 
 ## Tech stack
 
-Next.js 15 (App Router) · React 19 · TypeScript · Tailwind CSS · NextAuth v4 (JWT) · MongoDB driver · zod · Zustand · Cloudinary · Resend · Leaflet / react-leaflet
+Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS · NextAuth v4 (JWT) · MongoDB driver · zod · Zustand · Cloudinary · Resend · Leaflet / react-leaflet
 
 ## Run locally
 
-Requirements: Node.js 20+ and a free MongoDB Atlas cluster.
+Requirements: Node.js 22.12+ (production uses Node 24, see `.nvmrc`) and a free MongoDB Atlas cluster.
 
 ```bash
 npm install
@@ -36,7 +36,7 @@ npm run dev
 
 Open http://localhost:3000. To make yourself a moderator, put your email in `ADMIN_EMAILS` before signing up, or run `npm run db:setup` again after signing up.
 
-Useful scripts: `npm run typecheck`, `npm run lint`, `npm run build`.
+Useful scripts: `npm run typecheck`, `npm run lint`, `npm run build`, and `npm run smoke` (end-to-end API check against a running server; see [guidelinesForProject.md](guidelinesForProject.md)).
 
 ## Deploy for free
 

@@ -1,4 +1,5 @@
 import { ObjectId } from 'mongodb';
+import { after } from 'next/server';
 import { route, ok, parseBody, badRequest } from '@/lib/api';
 import { getCurrentUser, requireUser } from '@/lib/session';
 import { rateLimit } from '@/lib/rate-limit';
@@ -8,9 +9,14 @@ import { geoPoint, withinRadius } from '@/lib/geo';
 import { usersCollection } from '@/lib/users';
 import { notifyMany, truncate } from '@/lib/notifications';
 import { toObjectId } from '@/lib/mongodb';
+import { sendEmail, appUrl } from '@/lib/email';
+import { escapeHtml } from '@/lib/utils';
 import { POST_TYPES, type PostDoc, type PostType } from '@/types';
 
 export const dynamic = 'force-dynamic';
+
+/** Keeps a single alert well inside Resend's free quota of 100 emails per day. */
+const MAX_ALERT_EMAILS = 20;
 
 function numberParam(value: string | null): number | undefined {
   if (value === null || value === '') return undefined;
@@ -85,10 +91,27 @@ export const POST = route(async (request) => {
           banned: { $ne: true },
           location: withinRadius(input.location.latitude, input.location.longitude, 10),
         },
-        { projection: { _id: 1 } }
+        { projection: { _id: 1, email: 1, preferences: 1 } }
       )
       .limit(1000)
       .toArray();
+    if (post.emergency.severity === 'critical') {
+      const recipients = nearby.filter((u) => u.preferences?.emailNotifications).slice(0, MAX_ALERT_EMAILS);
+      const place = escapeHtml(post.place.label);
+      after(() =>
+        Promise.allSettled(
+          recipients.map((u) =>
+            sendEmail({
+              to: u.email,
+              subject: `Critical alert near ${post.place.label}`,
+              heading: `Critical alert near ${place}`,
+              body: `${escapeHtml(truncate(post.text, 300))}<br><br>If you are in danger, call your local emergency number first.`,
+              cta: { label: 'View alert', url: `${appUrl()}/posts/${post._id}` },
+            })
+          )
+        )
+      );
+    }
     await notifyMany(
       nearby.map((u) => ({
         userId: u._id,

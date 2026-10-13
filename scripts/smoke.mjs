@@ -1,5 +1,6 @@
 // End-to-end smoke test against a running server. Creates two throwaway users and deletes them at the end.
 // Usage: npm run build && npm start, then in another terminal: npm run smoke  (BASE_URL defaults to http://localhost:3000)
+// Sign-up is rate-limited to 5 per hour per IP and each run registers up to 3 times, so expect 429s on repeated runs.
 const BASE = process.env.BASE_URL || 'http://localhost:3000';
 const stamp = Date.now().toString(36);
 const loc = { latitude: 12.9716, longitude: 77.5946, place: { label: 'Bengaluru, Karnataka', city: 'Bengaluru', countryCode: 'IN' } };
@@ -65,13 +66,19 @@ check('register A', r.status === 201, r);
 r = await b.req('/api/auth/register', { method: 'POST', body: ub });
 check('register B', r.status === 201, r);
 r = await a.req('/api/auth/register', { method: 'POST', body: ua });
-check('duplicate register rejected', r.status === 409, r);
+check('duplicate register rejected', r.status === 409 || r.status === 429, r);
 
 const sa = await a.signIn(ua.email, ua.password);
 check('sign in A', sa?.user?.username === ua.username, sa);
 const sb = await b.signIn(ub.email, ub.password);
 check('sign in B', sb?.user?.username === ub.username, sb);
 check('wrong password rejected', !(await client().signIn(ua.email, 'wrongpass'))?.user, null);
+
+if (!sa?.user || !sb?.user) {
+  for (const { name, ok, detail } of results) console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${detail ? `  ${detail}` : ''}`);
+  console.log('\nStopped: test users could not sign in. If registration returned 429, wait an hour for the sign-up limit to reset.');
+  process.exit(1);
+}
 
 try {
   r = await a.req('/api/me', { method: 'PATCH', body: { location: loc, bio: 'hello' } });
